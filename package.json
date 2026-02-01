@@ -4,7 +4,9 @@
   "description": "MCP server for Swagger/OpenAPI documentation access with smart caching and powerful search",
   "type": "module",
   "main": "dist/index.js",
-  "bin": "./dist/index.js",
+  "bin": {
+    "mcp-swagger-client": "dist/index.js"
+  },
   "scripts": {
     "build": "tsc && echo '#!/usr/bin/env node' > dist/index.js.new && cat dist/index.js >> dist/index.js.new && mv dist/index.js.new dist/index.js && chmod +x dist/index.js",
     "start": "node dist/index.js",
