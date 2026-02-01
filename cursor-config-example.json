@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "swagger": {
+      "command": "node",
+      "args": ["/qs/mcp-swagger/dist/index.js"],
+      "env": {
+        "MCP_SWAGGER_URL": "https://petstore.swagger.io/v2/swagger.json"
+      }
+    }
+  }
+}

@@ -1,0 +1,48 @@
+{
+  "name": "mcp-swagger-client",
+  "version": "1.0.0",
+  "description": "MCP server for Swagger/OpenAPI documentation access with smart caching and powerful search",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": "./dist/index.js",
+  "scripts": {
+    "build": "tsc && echo '#!/usr/bin/env node' > dist/index.js.new && cat dist/index.js >> dist/index.js.new && mv dist/index.js.new dist/index.js && chmod +x dist/index.js",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "inspector": "npx @modelcontextprotocol/inspector node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "swagger",
+    "openapi",
+    "api-documentation",
+    "api",
+    "rest",
+    "documentation",
+    "cursor",
+    "claude",
+    "ai"
+  ],
+  "author": "theSharque",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/theSharque/mcp-swagger-client.git"
+  },
+  "bugs": {
+    "url": "https://github.com/theSharque/mcp-swagger-client/issues"
+  },
+  "homepage": "https://github.com/theSharque/mcp-swagger-client#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "axios": "^1.7.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.14",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.3"
+  }
+}
