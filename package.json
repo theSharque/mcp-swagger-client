@@ -1,6 +1,6 @@
 {
   "name": "mcp-swagger-client",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "MCP server for Swagger/OpenAPI documentation access with smart caching and powerful search",
   "type": "module",
   "main": "dist/index.js",
