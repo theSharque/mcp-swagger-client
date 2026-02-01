@@ -30,20 +30,20 @@ export function resolveRef(spec: OpenAPISpec, ref: string): any {
 
   // Remove leading #/ and split by /
   const path = ref.substring(2).split("/");
-  
+
   let current: any = spec;
   for (const segment of path) {
     // Handle escaped characters in JSON Pointer
     const decodedSegment = segment.replace(/~1/g, "/").replace(/~0/g, "~");
-    
+
     if (current === null || current === undefined) {
       throw new Error(`Cannot resolve reference: ${ref} (path does not exist)`);
     }
-    
+
     if (typeof current !== "object") {
       throw new Error(`Cannot resolve reference: ${ref} (invalid path)`);
     }
-    
+
     current = current[decodedSegment];
   }
 
@@ -74,13 +74,13 @@ export function resolveSchema(spec: OpenAPISpec, schema: Schema, visited = new S
     }
 
     visited.add(schema.$ref);
-    
+
     try {
       const resolved = resolveRef(spec, schema.$ref);
       // Merge the resolved schema with current (excluding $ref)
       const { $ref, ...rest } = schema;
       const merged = { ...resolved, ...rest };
-      
+
       // Recursively resolve the merged schema
       return resolveSchema(spec, merged, visited);
     } catch (error) {

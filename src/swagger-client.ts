@@ -18,6 +18,10 @@ import type {
   SearchApiResponse,
   ApiDetailsResponse,
   ModelDetailsResponse,
+  ApiEndpoint,
+  ListAllApiResponse,
+  CheckApiRequest,
+  CheckApiResponse,
   Operation,
   Parameter,
   RequestBody,
@@ -62,7 +66,7 @@ export class SwaggerClient {
     const spec = await this.getSpec();
     const normalized = normalizeSpec(spec);
     const results: SearchApiResult[] = [];
-    
+
     const lowerQuery = query.toLowerCase();
 
     // Search through all paths and operations
@@ -135,12 +139,12 @@ export class SwaggerClient {
 
     // Collect parameters from both path-level and operation-level
     const parameters: Parameter[] = [];
-    
+
     // Path-level parameters
     if (pathItem.parameters) {
       parameters.push(...pathItem.parameters);
     }
-    
+
     // Operation-level parameters
     if (operation.parameters) {
       parameters.push(...operation.parameters);
@@ -229,7 +233,7 @@ export class SwaggerClient {
    */
   async getModelDetails(modelName: string): Promise<ModelDetailsResponse | null> {
     const spec = await this.getSpec();
-    
+
     const schema = getModelByName(spec, modelName);
     if (!schema) {
       return null;
@@ -297,6 +301,158 @@ export class SwaggerClient {
       description: normalized.description,
       baseUrl: normalized.baseUrl,
     };
+  }
+
+  /**
+   * List all API endpoints
+   */
+  async listAllApi(): Promise<ListAllApiResponse> {
+    const spec = await this.getSpec();
+    const normalized = normalizeSpec(spec);
+    const endpoints: ApiEndpoint[] = [];
+    const groupedByTag: Record<string, ApiEndpoint[]> = {};
+
+    // Iterate through all paths and operations
+    for (const [path, pathItem] of Object.entries(normalized.paths)) {
+      if (!pathItem) continue;
+
+      const methods = ["get", "post", "put", "delete", "patch", "options", "head", "trace"] as const;
+
+      for (const method of methods) {
+        const operation = pathItem[method] as Operation | undefined;
+        if (!operation) continue;
+
+        const endpoint: ApiEndpoint = {
+          path,
+          method: method.toUpperCase(),
+          operationId: operation.operationId,
+          summary: operation.summary,
+          tags: operation.tags,
+        };
+
+        endpoints.push(endpoint);
+
+        // Group by tags
+        if (operation.tags && operation.tags.length > 0) {
+          for (const tag of operation.tags) {
+            if (!groupedByTag[tag]) {
+              groupedByTag[tag] = [];
+            }
+            groupedByTag[tag].push(endpoint);
+          }
+        } else {
+          // Endpoints without tags go to "Untagged" group
+          if (!groupedByTag["Untagged"]) {
+            groupedByTag["Untagged"] = [];
+          }
+          groupedByTag["Untagged"].push(endpoint);
+        }
+      }
+    }
+
+    return {
+      endpoints,
+      total: endpoints.length,
+      groupedByTag,
+    };
+  }
+
+  /**
+   * Execute an API request
+   */
+  async checkApi(request: CheckApiRequest): Promise<CheckApiResponse> {
+    const spec = await this.getSpec();
+    const normalized = normalizeSpec(spec);
+
+    // Get base URL from spec
+    let baseUrl = normalized.baseUrl || "";
+
+    // If baseUrl is not set, try to extract from config URL
+    if (!baseUrl) {
+      try {
+        const specUrl = new URL(this.config.url);
+        baseUrl = `${specUrl.protocol}//${specUrl.host}`;
+      } catch (error) {
+        throw new Error("Could not determine base URL for API requests");
+      }
+    }
+
+    // Build full URL
+    let fullUrl = baseUrl + request.path;
+
+    // Add query parameters
+    if (request.queryParams && Object.keys(request.queryParams).length > 0) {
+      const params = new URLSearchParams(request.queryParams);
+      fullUrl += `?${params.toString()}`;
+    }
+
+    // Prepare headers
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...request.headers,
+    };
+
+    // Add authentication if configured
+    if (this.config.token) {
+      headers["Authorization"] = `Bearer ${this.config.token}`;
+    } else if (this.config.user && this.config.password) {
+      const auth = Buffer.from(`${this.config.user}:${this.config.password}`).toString("base64");
+      headers["Authorization"] = `Basic ${auth}`;
+    } else if (this.config.cookies) {
+      headers["Cookie"] = this.config.cookies;
+    }
+
+    // Execute request
+    const startTime = Date.now();
+
+    try {
+      const fetchOptions: RequestInit = {
+        method: request.method.toUpperCase(),
+        headers,
+      };
+
+      // Add body for methods that support it
+      if (request.body && !["GET", "HEAD"].includes(request.method.toUpperCase())) {
+        fetchOptions.body = typeof request.body === "string"
+          ? request.body
+          : JSON.stringify(request.body);
+      }
+
+      const response = await fetch(fullUrl, fetchOptions);
+      const executionTime = Date.now() - startTime;
+
+      // Parse response
+      const contentType = response.headers.get("content-type") || "";
+      let data: any;
+
+      if (contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch {
+          data = await response.text();
+        }
+      } else {
+        data = await response.text();
+      }
+
+      // Collect response headers
+      const responseHeaders: Record<string, string> = {};
+      response.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+
+      return {
+        status: response.status,
+        statusText: response.statusText,
+        headers: responseHeaders,
+        data,
+        requestUrl: fullUrl,
+        executionTime,
+      };
+    } catch (error) {
+      const executionTime = Date.now() - startTime;
+      throw new Error(`Request failed after ${executionTime}ms: ${error}`);
+    }
   }
 }
 

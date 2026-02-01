@@ -89,7 +89,7 @@ async function checkIfModified(
 ): Promise<boolean> {
   try {
     const axiosConfig = buildAxiosConfig(config);
-    
+
     // Make HEAD request to check headers
     const response = await axios.head(config.url, {
       ...axiosConfig,
