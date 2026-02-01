@@ -252,23 +252,23 @@ export interface Schema {
   minProperties?: number;
   required?: string[];
   enum?: any[];
-  
+
   // Object properties
   properties?: Record<string, Schema>;
   additionalProperties?: boolean | Schema;
-  
+
   // Array properties
   items?: Schema | Schema[];
-  
+
   // Combining schemas
   allOf?: Schema[];
   oneOf?: Schema[];
   anyOf?: Schema[];
   not?: Schema;
-  
+
   // References
   $ref?: string;
-  
+
   // OpenAPI specific
   nullable?: boolean;
   discriminator?: Discriminator;
@@ -379,4 +379,35 @@ export interface ModelDetailsResponse {
   properties?: Record<string, Schema>;
   // For non-object types
   schema?: Schema;
+}
+
+export interface ApiEndpoint {
+  path: string;
+  method: string;
+  operationId?: string;
+  summary?: string;
+  tags?: string[];
+}
+
+export interface ListAllApiResponse {
+  endpoints: ApiEndpoint[];
+  total: number;
+  groupedByTag?: Record<string, ApiEndpoint[]>;
+}
+
+export interface CheckApiRequest {
+  path: string;
+  method: string;
+  body?: any;
+  queryParams?: Record<string, string>;
+  headers?: Record<string, string>;
+}
+
+export interface CheckApiResponse {
+  status: number;
+  statusText: string;
+  headers: Record<string, string>;
+  data: any;
+  requestUrl: string;
+  executionTime: number;
 }

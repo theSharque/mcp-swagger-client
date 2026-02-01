@@ -7,8 +7,8 @@
 
 **Smart MCP server** that connects to Swagger/OpenAPI specifications with intelligent caching and powerful search capabilities.
 
-📦 **Install**: `npm install -g mcp-swagger-client` or use via npx  
-🌐 **npm**: https://www.npmjs.com/package/mcp-swagger-client  
+📦 **Install**: `npm install -g mcp-swagger-client` or use via npx
+🌐 **npm**: https://www.npmjs.com/package/mcp-swagger-client
 🔗 **GitHub**: https://github.com/theSharque/mcp-swagger-client
 
 ## Overview
@@ -390,7 +390,7 @@ Full model schema including:
 The server implements intelligent caching to minimize API requests:
 
 1. **First Request**: Downloads and caches the OpenAPI spec in `~/.mcp-swagger-client/cache/`
-2. **Subsequent Requests**: 
+2. **Subsequent Requests**:
    - Makes a quick HEAD request to check if the spec has changed
    - Compares `ETag` and `Last-Modified` headers
    - Uses cached version if unchanged
