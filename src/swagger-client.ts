@@ -471,6 +471,9 @@ export function createClientFromEnv(): SwaggerClient {
     password: process.env.MCP_SWAGGER_PASSWORD,
     token: process.env.MCP_SWAGGER_TOKEN,
     cookies: process.env.MCP_SWAGGER_COOKIES,
+    loginUrl: process.env.MCP_SWAGGER_LOGIN_URL,
+    loginMethod: process.env.MCP_SWAGGER_LOGIN_METHOD,
+    loginBody: process.env.MCP_SWAGGER_LOGIN_BODY,
   };
 
   return new SwaggerClient(config);

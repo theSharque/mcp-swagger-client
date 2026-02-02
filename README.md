@@ -67,8 +67,17 @@ Choose one of the following methods:
 - `MCP_SWAGGER_TOKEN` - Bearer token for authentication
 - `MCP_SWAGGER_USER` + `MCP_SWAGGER_PASSWORD` - Basic authentication
 - `MCP_SWAGGER_COOKIES` - Cookie string for session-based auth
+- `MCP_SWAGGER_LOGIN_URL` + `MCP_SWAGGER_LOGIN_BODY` - Pre-login authentication (see below)
 
-**Priority**: Token → Basic Auth → Cookies
+**Priority**: Token → Basic Auth → Login Cookies → Cookies
+
+### Optional Pre-Login Authentication
+
+For APIs that require login before accessing Swagger documentation:
+
+- `MCP_SWAGGER_LOGIN_URL` - URL to perform login request
+- `MCP_SWAGGER_LOGIN_METHOD` - HTTP method for login (default: POST)
+- `MCP_SWAGGER_LOGIN_BODY` - JSON string with login credentials
 
 ## Integration
 
@@ -236,6 +245,26 @@ Edit `.continue/config.json`:
   }
 }
 ```
+
+#### Pre-Login Authentication
+
+For systems where Swagger is only accessible after logging in:
+
+```json
+{
+  "env": {
+    "MCP_SWAGGER_URL": "https://api.example.com/swagger.json",
+    "MCP_SWAGGER_LOGIN_URL": "https://api.example.com/auth/login",
+    "MCP_SWAGGER_LOGIN_METHOD": "POST",
+    "MCP_SWAGGER_LOGIN_BODY": "{\"username\":\"your_user\",\"password\":\"your_pass\"}"
+  }
+}
+```
+
+The server will:
+1. First POST to the login URL with provided credentials
+2. Extract cookies from the response
+3. Use those cookies to access the Swagger documentation
 
 ## Tools
 
