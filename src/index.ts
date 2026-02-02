@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 import { createClientFromEnv } from "./swagger-client.js";
+import { clearCache, clearAllCache } from "./cache.js";
 
 /**
  * MCP Swagger Server
@@ -476,6 +477,92 @@ Note: This tool makes REAL requests to the API. Be careful with POST/PUT/DELETE 
           requestUrl: "",
           executionTime: 0,
           error: String(error),
+        },
+      };
+    }
+  }
+);
+
+/**
+ * Tool: Clear OpenAPI spec cache
+ */
+server.registerTool(
+  "cache-clear",
+  {
+    title: "Clear OpenAPI Cache",
+    description: `Clear cached OpenAPI/Swagger specification data.
+
+This tool allows you to:
+- Clear all cached OpenAPI specs (if no URL provided)
+- Clear cache for a specific Swagger URL (if URL provided)
+
+The cache is used to store OpenAPI specifications locally to avoid repeated downloads.
+Clearing the cache forces the server to fetch fresh specifications on the next request.
+
+Use this tool when you need to:
+- Force refresh of API documentation after API changes
+- Clear stale cached data
+- Troubleshoot cache-related issues
+- Free up disk space
+
+Returns: Confirmation message with details about what was cleared.`,
+    inputSchema: {
+      url: z.string().optional().describe("Optional: Specific Swagger/OpenAPI URL to clear cache for. If not provided, clears all cached specs."),
+    },
+    outputSchema: {
+      success: z.boolean(),
+      message: z.string(),
+      clearedUrl: z.string().optional(),
+      clearedAll: z.boolean().optional(),
+    },
+  },
+  async ({ url }) => {
+    try {
+      if (url) {
+        // Clear cache for specific URL
+        await clearCache(url);
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Cache cleared for URL: ${url}`,
+            },
+          ],
+          structuredContent: {
+            success: true,
+            message: `Cache cleared for URL: ${url}`,
+            clearedUrl: url,
+            clearedAll: false,
+          },
+        };
+      } else {
+        // Clear all cache
+        await clearAllCache();
+        return {
+          content: [
+            {
+              type: "text",
+              text: "All OpenAPI cache entries cleared successfully.",
+            },
+          ],
+          structuredContent: {
+            success: true,
+            message: "All OpenAPI cache entries cleared successfully.",
+            clearedAll: true,
+          },
+        };
+      }
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Error clearing cache: ${error}`,
+          },
+        ],
+        structuredContent: {
+          success: false,
+          message: `Error clearing cache: ${error}`,
         },
       };
     }

@@ -60,17 +60,33 @@ async function performLogin(config: SwaggerConfig): Promise<string | undefined> 
     }
 
     console.error(`Performing login to ${config.loginUrl}...`);
+    axiosConfig.validateStatus = () => true; // Don't throw on any status code
     const response = await axios(axiosConfig);
+
+    // Check if login was successful (status 200-299)
+    if (response.status < 200 || response.status >= 300) {
+      const errorMessage = response.data?.message || response.data?.error || JSON.stringify(response.data);
+      console.error(`Login failed with status ${response.status}: ${errorMessage}`);
+      if (response.status === 401 || response.status === 403 || response.status === 412) {
+        console.error(`Authentication failed. Please check your credentials in MCP_SWAGGER_LOGIN_BODY.`);
+      }
+      return undefined;
+    }
 
     // Extract cookies from Set-Cookie headers
     const setCookieHeaders = response.headers["set-cookie"];
     if (setCookieHeaders && setCookieHeaders.length > 0) {
-      // Combine all cookies into a single string
-      const cookies = setCookieHeaders
+      // Filter out deleted cookies and combine valid ones
+      const validCookies = setCookieHeaders
+        .filter((cookie) => !cookie.toLowerCase().includes("deleted"))
         .map((cookie) => cookie.split(";")[0]) // Take only the cookie value, ignore attributes
-        .join("; ");
-      console.error(`Login successful, obtained cookies`);
-      return cookies;
+        .filter((cookie) => cookie.trim().length > 0);
+
+      if (validCookies.length > 0) {
+        const cookies = validCookies.join("; ");
+        console.error(`Login successful, obtained cookies`);
+        return cookies;
+      }
     }
 
     console.error(`Login successful but no cookies received`);
