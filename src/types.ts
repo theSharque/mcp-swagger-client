@@ -12,6 +12,10 @@ export interface SwaggerConfig {
   password?: string;
   token?: string;
   cookies?: string;
+  // Login configuration (optional)
+  loginUrl?: string;
+  loginMethod?: string; // GET, POST, etc. (default: POST)
+  loginBody?: string; // JSON string for login request body
 }
 
 // ============================================================================

@@ -32,14 +32,64 @@ function getCacheFilePath(url: string): string {
 }
 
 /**
+ * Perform login if loginUrl is configured
+ * Returns cookies from the login response
+ */
+async function performLogin(config: SwaggerConfig): Promise<string | undefined> {
+  if (!config.loginUrl) {
+    return undefined;
+  }
+
+  try {
+    const method = (config.loginMethod || "POST").toUpperCase();
+    const axiosConfig: AxiosRequestConfig = {
+      method: method as any,
+      url: config.loginUrl,
+      headers: {} as Record<string, string>,
+    };
+
+    // Add login body if provided
+    if (config.loginBody && (method === "POST" || method === "PUT" || method === "PATCH")) {
+      try {
+        axiosConfig.data = JSON.parse(config.loginBody);
+        axiosConfig.headers!["Content-Type"] = "application/json";
+      } catch (error) {
+        console.error(`Failed to parse login body as JSON: ${error}`);
+        return undefined;
+      }
+    }
+
+    console.error(`Performing login to ${config.loginUrl}...`);
+    const response = await axios(axiosConfig);
+
+    // Extract cookies from Set-Cookie headers
+    const setCookieHeaders = response.headers["set-cookie"];
+    if (setCookieHeaders && setCookieHeaders.length > 0) {
+      // Combine all cookies into a single string
+      const cookies = setCookieHeaders
+        .map((cookie) => cookie.split(";")[0]) // Take only the cookie value, ignore attributes
+        .join("; ");
+      console.error(`Login successful, obtained cookies`);
+      return cookies;
+    }
+
+    console.error(`Login successful but no cookies received`);
+    return undefined;
+  } catch (error) {
+    console.error(`Login failed: ${error}`);
+    return undefined;
+  }
+}
+
+/**
  * Build axios config with authentication
  */
-function buildAxiosConfig(config: SwaggerConfig): AxiosRequestConfig {
+async function buildAxiosConfig(config: SwaggerConfig): Promise<AxiosRequestConfig> {
   const axiosConfig: AxiosRequestConfig = {
     headers: {} as Record<string, string>,
   };
 
-  // Priority: Token → Basic Auth → Cookies
+  // Priority: Token → Basic Auth → Login Cookies → Cookies
   if (config.token) {
     axiosConfig.headers!["Authorization"] = `Bearer ${config.token}`;
   } else if (config.user && config.password) {
@@ -47,8 +97,18 @@ function buildAxiosConfig(config: SwaggerConfig): AxiosRequestConfig {
     axiosConfig.headers!["Authorization"] = `Basic ${credentials}`;
   }
 
-  if (config.cookies) {
-    axiosConfig.headers!["Cookie"] = config.cookies;
+  // If loginUrl is configured, perform login first
+  let cookies = config.cookies;
+  if (config.loginUrl) {
+    const loginCookies = await performLogin(config);
+    if (loginCookies) {
+      // Merge login cookies with existing cookies
+      cookies = cookies ? `${cookies}; ${loginCookies}` : loginCookies;
+    }
+  }
+
+  if (cookies) {
+    axiosConfig.headers!["Cookie"] = cookies;
   }
 
   return axiosConfig;
@@ -88,7 +148,7 @@ async function checkIfModified(
   cachedEntry: CacheEntry
 ): Promise<boolean> {
   try {
-    const axiosConfig = buildAxiosConfig(config);
+    const axiosConfig = await buildAxiosConfig(config);
 
     // Make HEAD request to check headers
     const response = await axios.head(config.url, {
@@ -138,7 +198,7 @@ async function fetchSpec(config: SwaggerConfig): Promise<{
   lastModified?: string;
 }> {
   try {
-    const axiosConfig = buildAxiosConfig(config);
+    const axiosConfig = await buildAxiosConfig(config);
     const response = await axios.get(config.url, axiosConfig);
 
     if (response.status !== 200) {
