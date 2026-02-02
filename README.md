@@ -20,6 +20,9 @@ Access and explore your API documentation through Swagger/OpenAPI specs with AI-
 - 🔍 **Smart Search**: Search API endpoints by path, method, description, tags, and parameters
 - 📋 **Detailed Information**: Get complete endpoint details including parameters, request/response schemas, and error codes
 - 📦 **Model Inspector**: Explore data models with full property details and constraints
+- 📝 **Complete API List**: Get full overview of all available endpoints grouped by tags
+- 🧪 **API Testing**: Built-in HTTP client to execute real API requests
+- 🗑️ **Cache Management**: Clear cached OpenAPI specs when needed
 - 🚀 **Intelligent Caching**: Local caching with HEAD request validation (ETag/Last-Modified)
 - 🔐 **Multiple Auth Methods**: Support for Bearer tokens, Basic Auth, and cookies
 - 📚 **OpenAPI Support**: Works with both Swagger 2.0 and OpenAPI 3.0+
@@ -414,6 +417,114 @@ Full model schema including:
 }
 ```
 
+### 4. `list-all-api`
+
+Get a complete overview of all available API endpoints.
+
+**Input:**
+None (no parameters required)
+
+**Output:**
+- `endpoints` - Array of all endpoints
+  - `path` - Endpoint path
+  - `method` - HTTP method
+  - `operationId` - Operation ID
+  - `summary` - Brief summary
+  - `tags` - Tags/categories
+- `total` - Total number of endpoints
+- `groupedByTag` - Endpoints grouped by tags
+
+**Example:**
+```typescript
+// Get all endpoints
+{}
+
+// Returns:
+{
+  "endpoints": [
+    {
+      "path": "/api/users",
+      "method": "GET",
+      "operationId": "getAllUsers",
+      "summary": "Get all users",
+      "tags": ["user-controller"]
+    }
+    // ... more endpoints
+  ],
+  "total": 35,
+  "groupedByTag": {
+    "user-controller": [...],
+    "Authentication": [...]
+  }
+}
+```
+
+### 5. `check-api`
+
+Execute a real HTTP request to any API endpoint from the OpenAPI specification.
+
+**Input:**
+- `path` (string, required) - API endpoint path (e.g., `/api/users`, `/api/features/123`)
+- `method` (string, required) - HTTP method (GET, POST, PUT, DELETE, PATCH, etc.)
+- `body` (any, optional) - Request body (will be JSON stringified if object)
+- `queryParams` (object, optional) - Query parameters as key-value pairs
+- `headers` (object, optional) - Additional HTTP headers
+
+**Output:**
+- `status` - HTTP status code
+- `statusText` - Status text
+- `headers` - Response headers
+- `data` - Response data (JSON or text)
+- `requestUrl` - Full request URL
+- `executionTime` - Execution time in milliseconds
+
+**Note**: This tool makes REAL requests to the API. Be careful with POST/PUT/DELETE operations!
+
+### 6. `cache-clear`
+
+Clear cached OpenAPI/Swagger specification data.
+
+**Input:**
+- `url` (string, optional) - Specific Swagger/OpenAPI URL to clear cache for. If not provided, clears all cached specs.
+
+**Output:**
+- `success` - Whether the operation was successful
+- `message` - Confirmation message
+- `clearedUrl` - URL that was cleared (if specific URL provided)
+- `clearedAll` - Whether all cache was cleared (if no URL provided)
+
+**Use cases:**
+- Force refresh of API documentation after API changes
+- Clear stale cached data
+- Troubleshoot cache-related issues
+- Free up disk space
+
+**Example:**
+```typescript
+// Clear all cache
+{}
+
+// Returns:
+{
+  "success": true,
+  "message": "All OpenAPI cache entries cleared successfully.",
+  "clearedAll": true
+}
+
+// Clear cache for specific URL
+{
+  "url": "https://api.example.com/swagger.json"
+}
+
+// Returns:
+{
+  "success": true,
+  "message": "Cache cleared for URL: https://api.example.com/swagger.json",
+  "clearedUrl": "https://api.example.com/swagger.json",
+  "clearedAll": false
+}
+```
+
 ## How Caching Works
 
 The server implements intelligent caching to minimize API requests:
@@ -432,6 +543,16 @@ The server implements intelligent caching to minimize API requests:
 - Works offline if cache exists
 
 **Cache Location**: `~/.mcp-swagger-client/cache/`
+
+**Clearing Cache:**
+You can clear the cache using the `cache-clear` tool:
+- Clear all cache: `cache-clear` (no parameters)
+- Clear specific URL: `cache-clear` with `url` parameter
+
+Alternatively, manually delete the cache directory:
+```bash
+rm -rf ~/.mcp-swagger-client/cache/
+```
 
 ## Usage
 
@@ -502,6 +623,12 @@ mcp-swagger-client/
 → get-api-details: { path: "/api/auth/login", method: "POST" }
 ```
 
+### 5. Cache Management
+```
+"Clear the cached API documentation to get fresh data"
+→ cache-clear: {}
+```
+
 ## Troubleshooting
 
 ### Error: "MCP_SWAGGER_URL environment variable is required"
@@ -516,8 +643,17 @@ Make sure you've set the `MCP_SWAGGER_URL` environment variable with your Swagge
 
 ### Cache Issues
 
-If you're seeing stale data, you can manually clear the cache:
+If you're seeing stale data, you can clear the cache using the `cache-clear` tool:
 
+```typescript
+// Clear all cache
+cache-clear: {}
+
+// Or clear specific URL
+cache-clear: { url: "https://api.example.com/swagger.json" }
+```
+
+Alternatively, manually delete the cache directory:
 ```bash
 rm -rf ~/.mcp-swagger-client/cache/
 ```
