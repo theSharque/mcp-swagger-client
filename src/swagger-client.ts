@@ -3,7 +3,7 @@
  * Provides search and detail retrieval functionality
  */
 
-import { getCachedSpec } from "./cache.js";
+import { getCachedSpec, performLogin } from "./cache.js";
 import {
   detectVersion,
   resolveSchema,
@@ -35,6 +35,7 @@ import type {
 export class SwaggerClient {
   private config: SwaggerConfig;
   private spec: OpenAPISpec | null = null;
+  private loginCookies: string | undefined = undefined;
 
   constructor(config: SwaggerConfig) {
     this.config = config;
@@ -45,6 +46,10 @@ export class SwaggerClient {
    */
   async getSpec(): Promise<OpenAPISpec> {
     if (!this.spec) {
+      // Perform login if configured and store cookies for later use
+      if (this.config.loginUrl && !this.loginCookies) {
+        this.loginCookies = await performLogin(this.config);
+      }
       this.spec = await getCachedSpec(this.config);
     }
     return this.spec;
@@ -367,11 +372,17 @@ export class SwaggerClient {
     // Get base URL from spec
     let baseUrl = normalized.baseUrl || "";
 
-    // If baseUrl is not set, try to extract from config URL
-    if (!baseUrl) {
+    // If baseUrl is not set or is a relative path, extract host from config URL
+    if (!baseUrl || baseUrl.startsWith("/")) {
       try {
         const specUrl = new URL(this.config.url);
-        baseUrl = `${specUrl.protocol}//${specUrl.host}`;
+        const hostUrl = `${specUrl.protocol}//${specUrl.host}`;
+        // If baseUrl is relative, append it to host (but avoid double slashes)
+        if (baseUrl && baseUrl.startsWith("/")) {
+          baseUrl = hostUrl + (baseUrl === "/" ? "" : baseUrl);
+        } else {
+          baseUrl = hostUrl;
+        }
       } catch (error) {
         throw new Error("Could not determine base URL for API requests");
       }
@@ -398,8 +409,12 @@ export class SwaggerClient {
     } else if (this.config.user && this.config.password) {
       const auth = Buffer.from(`${this.config.user}:${this.config.password}`).toString("base64");
       headers["Authorization"] = `Basic ${auth}`;
-    } else if (this.config.cookies) {
-      headers["Cookie"] = this.config.cookies;
+    }
+
+    // Use login cookies if available, otherwise fall back to config cookies
+    const cookies = this.loginCookies || this.config.cookies;
+    if (cookies) {
+      headers["Cookie"] = cookies;
     }
 
     // Execute request

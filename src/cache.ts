@@ -35,7 +35,7 @@ function getCacheFilePath(url: string): string {
  * Perform login if loginUrl is configured
  * Returns cookies from the login response
  */
-async function performLogin(config: SwaggerConfig): Promise<string | undefined> {
+export async function performLogin(config: SwaggerConfig): Promise<string | undefined> {
   if (!config.loginUrl) {
     return undefined;
   }
